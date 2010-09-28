@@ -2,10 +2,10 @@ package com.plugin.etagFilter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -17,13 +17,11 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletResponseWrapper;
 
-import org.apache.commons.collections.ListUtils;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.text.StrBuilder;
 import org.apache.log4j.Logger;
 
-import com.cj.etag.ETagResponseWrapper;
 
 public class EtagFilter implements Filter {
 	Logger logger = Logger.getLogger(getClass());
@@ -33,23 +31,59 @@ public class EtagFilter implements Filter {
 		HttpServletRequest servletRequest = (HttpServletRequest) req;
 		HttpServletResponse servletResponse = (HttpServletResponse) res;
 
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ETagResponseWrapper wrappedResponse = new ETagResponseWrapper(
-				servletResponse, baos);
+		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		HttpServletResponseWrapper wrappedResponse = new HttpServletResponseWrapper(
+				servletResponse) {
+			private ServletOutputStream stream = null;
+			private PrintWriter writer = null;
+
+			@Override
+			public ServletOutputStream getOutputStream() throws IOException {
+				if (stream == null) {
+					stream = new ServletOutputStream() {
+						@Override
+						public void write(int b) throws IOException {
+							baos.write(b);
+						}
+					};
+				}
+				return stream;
+			}
+
+			@Override
+			public void flushBuffer() throws IOException {
+				stream.flush();
+			}
+
+			@Override
+			public PrintWriter getWriter() throws IOException {
+				if (writer == null) {
+					writer = new PrintWriter(new OutputStreamWriter(
+							getOutputStream(), "UTF-8"));
+				}
+				return writer;
+			}
+
+		};
 		chain.doFilter(servletRequest, wrappedResponse);
-		StrBuilder str = new StrBuilder();
-		for(Cookie cookie: servletRequest.getCookies()){
-			str.append(cookie.getName()).append("=").append(cookie.getValue()).append("\n");
+		StrBuilder str = new StrBuilder("");
+		for (Cookie cookie : servletRequest.getCookies()) {
+			str.append(cookie.getName()).append("=").append(cookie.getValue())
+					.append("\n");
 		}
-		String varyHeaders = servletRequest.getHeader("Accept") + str.toString();
-		@SuppressWarnings("unchecked")
-		List<Byte> byteList = ListUtils.union(Arrays.asList(baos.toByteArray()), Arrays.asList(varyHeaders.getBytes()));
-		
-		System.out.println("hola");
-		Byte[] bytesObject = byteList.toArray(new Byte[byteList.size()]);
-		
-		
-		byte[] bytes = ArrayUtils.toPrimitive(bytesObject);
+		String varyHeaders = servletRequest.getHeader("Accept") != null ? servletRequest
+				.getHeader("Accept") : "" + str.toString();
+		byte[] b1 = baos.toByteArray();
+		byte[] b2 = varyHeaders.getBytes();
+
+		byte[] bytes = new byte[b1.length + b2.length];
+		int i = 0;
+		for (byte auxByte : b1) {
+			bytes[i++] = auxByte;
+		}
+		for (byte auxByte : b2) {
+			bytes[i++] = auxByte;
+		}
 
 		String token = '"' + ETagComputeUtils.getMd5Digest(bytes) + '"';
 		servletResponse.setHeader("ETag", token); // always store the ETag in
