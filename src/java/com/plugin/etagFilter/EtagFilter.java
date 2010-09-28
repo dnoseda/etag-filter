@@ -73,12 +73,12 @@ public class EtagFilter implements Filter {
 		}
 		String varyHeaders = servletRequest.getHeader("Accept") != null ? servletRequest
 				.getHeader("Accept") : "" + str.toString();
-		byte[] b1 = baos.toByteArray();
+		byte[] originalBytes = baos.toByteArray();
 		byte[] b2 = varyHeaders.getBytes();
 
-		byte[] bytes = new byte[b1.length + b2.length];
+		byte[] bytes = new byte[originalBytes.length + b2.length];
 		int i = 0;
-		for (byte auxByte : b1) {
+		for (byte auxByte : originalBytes) {
 			bytes[i++] = auxByte;
 		}
 		for (byte auxByte : b2) {
@@ -110,9 +110,9 @@ public class EtagFilter implements Filter {
 					lastModified.getTime());
 
 			logger.debug("Writing body content");
-			servletResponse.setContentLength(bytes.length);
+			servletResponse.setContentLength(originalBytes.length);
 			ServletOutputStream sos = servletResponse.getOutputStream();
-			sos.write(bytes);
+			sos.write(originalBytes);
 			sos.flush();
 			sos.close();
 		}
