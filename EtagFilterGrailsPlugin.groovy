@@ -1,8 +1,9 @@
-import com.cj.etag.ETagFilter;
+import com.plugin.etagFilter.EtagFilter;
+
 
 class EtagFilterGrailsPlugin {
     // the plugin version
-    def version = "0.1"
+    def version = "0.2"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.3.2 > *"
     // the other plugins this plugin depends on
@@ -31,7 +32,7 @@ Brief description of the plugin.
 		contextParam[contextParam.size() - 1] + {
 			'filter' {
 				'filter-name'('etagFilter')
-				'filter-class'(ETagFilter.name)
+				'filter-class'(EtagFilter.name)
 			}
 		}
 		
