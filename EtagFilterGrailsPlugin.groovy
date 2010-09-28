@@ -1,3 +1,5 @@
+import com.cj.etag.ETagFilter;
+
 class EtagFilterGrailsPlugin {
     // the plugin version
     def version = "0.1"
@@ -22,7 +24,24 @@ Brief description of the plugin.
     def documentation = "http://grails.org/plugin/etag-filter"
 
     def doWithWebDescriptor = { xml ->
-        // TODO Implement additions to web.xml (optional), this event occurs before 
+		if (!isEnabled(application)) {
+			return
+		}
+		def contextParam = xml.'context-param'
+		contextParam[contextParam.size() - 1] + {
+			'filter' {
+				'filter-name'('etagFilter')
+				'filter-class'(ETagFilter.name)
+			}
+		}
+		
+		def filter = xml.'filter'
+		filter[filter.size() - 1] + {
+			'filter-mapping' {
+				'filter-name'('etagFilter')
+				'url-pattern'('/*')
+			}
+		}
     }
 
     def doWithSpring = {
@@ -47,4 +66,8 @@ Brief description of the plugin.
         // TODO Implement code that is executed when the project configuration changes.
         // The event is the same as for 'onChange'.
     }
+	private boolean isEnabled(application) {
+		def enabled = application.config.etagfilter.enabled
+		return enabled instanceof Boolean ? enabled : true
+	}
 }
