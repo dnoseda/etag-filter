@@ -44,7 +44,12 @@ public class EtagFilter implements Filter {
 		String varyHeaders = servletRequest.getHeader("Accept") + str.toString();
 		@SuppressWarnings("unchecked")
 		List<Byte> byteList = ListUtils.union(Arrays.asList(baos.toByteArray()), Arrays.asList(varyHeaders.getBytes()));
-		byte[] bytes = ArrayUtils.toPrimitive(byteList.toArray(new Byte[byteList.size()]));
+		
+		System.out.println("hola");
+		Byte[] bytesObject = byteList.toArray(new Byte[byteList.size()]);
+		
+		
+		byte[] bytes = ArrayUtils.toPrimitive(bytesObject);
 
 		String token = '"' + ETagComputeUtils.getMd5Digest(bytes) + '"';
 		servletResponse.setHeader("ETag", token); // always store the ETag in
